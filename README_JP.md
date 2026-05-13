@@ -200,6 +200,7 @@ docker-compose.yamlと同じディレクトリに [model.json](./deploy/model.js
     "type": "openai",
     "baseURL": "https://api.openai.com/v1",
     "apiKey": "sk-your-openai-api-key",
+    "apiMode": "openai-responses",
     "models": [
       {
         "name": "gpt-4o-mini",
@@ -220,6 +221,16 @@ docker-compose.yamlと同じディレクトリに [model.json](./deploy/model.js
 ```
 
 `intentAnalysis: true`に設定されたモデルは、検索意図分析とクエリ書き換えに使用されます。応答速度を向上させるため、ここでは小さなモデルを設定することをお勧めします。
+
+**設定説明**：
+- `provider`: モデルプロバイダー名
+- `type`: APIタイプ (openai/anthropic/google など)
+- `baseURL`: APIベースURL
+- `apiKey`: API Key
+- `apiMode`: OpenAI互換プロバイダーのオプション設定です。Chat Completionsを使う場合は `openai-completions` (デフォルト)、OpenAI Responses APIを使う場合は `openai-responses` を指定します。互換エンドポイントがResponses APIをサポートしない場合は未設定のままにしてください。
+- `models`: モデル名、別名、説明、最大Token数を含むモデルリスト
+
+OpenAIプロバイダーに `apiMode` を設定すると、メインチャット応答、検索意図分析、DeepResearchフローで同じモードが使われます。
 
 #### 4. サービス開始
 

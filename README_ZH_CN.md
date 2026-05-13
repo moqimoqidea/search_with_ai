@@ -20,6 +20,21 @@
 </div>
 
 ---
+## 推荐开源AI项目 / Recommended Open Source AI Project
+
+### [WeClaws](https://github.com/baseclaw/weclaws)
+
+WeClaws 是一个可一键部署的多用户微信 AI 助理机器人管理面板。你可以在 Web 端统一管理多个 AI 机器人，支持工具调用、Skills、MCP、子智能体、记忆、做梦、定时任务和沙盒执行等能力。
+
+WeClaws is a one-click deployable management dashboard for multi-user WeChat AI assistant bots. It lets you manage multiple AI bots from the web and supports tool calling, Skills, MCP, sub-agents, memory, dreaming, scheduled tasks, and sandbox execution.
+
+<div align="center">
+  <a href="https://github.com/baseclaw/weclaws">
+    <img src="./assets/weclaws.jpg" alt="WeClaws AI assistant management dashboard" style="border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"></img>
+  </a>
+</div>
+
+---
 
 <div align="center">
  <img src="./assets/screenshot.png" alt="AI Search Chat 界面截图" style="border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"></img>
@@ -200,6 +215,7 @@ services:
     "type": "openai",
     "baseURL": "https://api.openai.com/v1",
     "apiKey": "sk-your-openai-api-key",
+    "apiMode": "openai-responses",
     "models": [
       {
         "name": "gpt-4o-mini",
@@ -240,7 +256,10 @@ services:
 - `type`: API 类型 (openai/anthropic/google 等)
 - `baseURL`: API 基础地址
 - `apiKey`: 你的 API Key
+- `apiMode`: OpenAI 兼容提供商的可选配置。使用 `openai-completions` (默认) 调用 Chat Completions，或使用 `openai-responses` 调用 OpenAI Responses API。如果兼容端点不支持 Responses API，请保持不配置。
 - `models`: 模型列表，包含名称、别名、描述和最大 Token 数
+
+当 OpenAI 提供商配置了 `apiMode` 时，主聊天回复、搜索意图分析和 DeepResearch 流程都会使用同一种模式。
 
 #### 4. 启动服务
 

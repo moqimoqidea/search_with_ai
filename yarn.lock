@@ -5765,17 +5765,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fetch-sse@npm:1.1.2":
-  version: 1.1.2
-  resolution: "fetch-sse@npm:1.1.2"
-  checksum: 70d41c4febad36e519385080409705fb6ef6dcbbe2497eef40c6de25f62ac85e6257602d3648484cbb277bcbdae7cc14c9509ccb3d24a9c23d8d0e2dde3010f3
-  languageName: node
-  linkType: hard
-
-"fetch-sse@npm:^1.1.1":
-  version: 1.1.1
-  resolution: "fetch-sse@npm:1.1.1"
-  checksum: d5f7a9a53b87f442a8ca3de1af26cc1134ca2034b15a79e137acca60c0a28bb8e9ec690232a6b16967d78533e5f9f913e7b321cad3c50182d7a0d4ed7797280c
+"fetch-sse@npm:1.2.1, fetch-sse@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "fetch-sse@npm:1.2.1"
+  checksum: def92399852b44d2894975254b8408e1aca78cb781309931be073edc4eea27593213c0f53d50fb47d256fd5ac6cd768ab12d946fc7e22a04f976a010e22fb54f
   languageName: node
   linkType: hard
 
@@ -9677,7 +9670,7 @@ __metadata:
     eslint-plugin-node: ^11.1.0
     eslint-plugin-promise: ^6.1.1
     exa-js: ^2.0.11
-    fetch-sse: ^1.1.1
+    fetch-sse: ^1.2.1
     joi: ^18.0.1
     koa: ^3.1.1
     koa-static: ^5.0.0
@@ -11209,7 +11202,7 @@ __metadata:
     eslint-config-prettier: ^9.1.0
     eslint-plugin-tailwindcss: ^3.14.3
     eslint-plugin-vue: ^9.22.0
-    fetch-sse: 1.1.2
+    fetch-sse: 1.2.1
     github-markdown-css: ^5.6.1
     katex: ^0.16.25
     less: ^4.4.1

@@ -41,6 +41,7 @@ const instance = new DeepResearch({
     type: 'openai', // 'openai' | 'anthropic' | 'gemini' | 'vertexai'
     apiKey: 'YOUR_API_KEY',
     baseURL: 'https://api.openai.com/v1', // Optional, for custom endpoints
+    apiMode: 'openai-responses', // Optional for OpenAI: 'openai-completions' | 'openai-responses'
     systemPrompt: 'You are a helpful research assistant.', // Optional, default provided
     temperature: 0.1, // Optional, default 0.1, controls randomness (0.0-2.0)
     enableCitationUrl: true, // Optional, default true, controls citation format
@@ -92,6 +93,7 @@ const instance = new DeepResearch({
   options: {
     type: 'openai',
     apiKey: 'YOUR_OPENAI_API_KEY',
+    apiMode: 'openai-responses',
     temperature: 0.1,
   },
 });
@@ -145,6 +147,7 @@ const instance = new DeepResearch({
 | `type` | `'openai' \| 'anthropic' \| 'gemini' \| 'vertexai'` | `'openai'` | LLM provider to use |
 | `apiKey` | `string` | - | API key for the LLM provider |
 | `baseURL` | `string` | - | Custom API endpoint (optional) |
+| `apiMode` | `'openai-completions' \| 'openai-responses'` | `'openai-completions'` | OpenAI API mode. Use `openai-responses` for OpenAI Responses API support; leave unset for OpenAI-compatible endpoints that only support Chat Completions. |
 | `systemPrompt` | `string` | `'You are a helpful research assistant.'` | System prompt for the agent |
 | `temperature` | `number` | `0.1` | Controls randomness (0.0 = deterministic, 2.0 = very random) |
 | `enableCitationUrl` | `boolean` | `true` | Enable URL format in citations (see [Citation Formats](#citation-formats)) |

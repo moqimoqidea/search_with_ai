@@ -215,6 +215,7 @@ Create and edit the [model.json](./deploy/model.json) file in the same directory
     "type": "openai",
     "baseURL": "https://api.openai.com/v1",
     "apiKey": "sk-your-openai-api-key",
+    "apiMode": "openai-responses",
     "models": [
       {
         "name": "gpt-4o-mini",
@@ -255,7 +256,10 @@ Models with `intentAnalysis: true` will be used for search intent analysis and q
 - `type`: API type (openai/anthropic/google etc.)
 - `baseURL`: API base URL
 - `apiKey`: Your API key
+- `apiMode`: Optional for OpenAI-compatible providers. Use `openai-completions` (default) for Chat Completions, or `openai-responses` for the OpenAI Responses API. Leave it unset for OpenAI-compatible endpoints that do not support the Responses API.
 - `models`: Model list with name, alias, description and max tokens
+
+When `apiMode` is set on an OpenAI provider, the main chat response, search intent analysis, and DeepResearch flows use the same mode.
 
 #### 4. Start Services
 
