@@ -14,9 +14,10 @@ import { logger, replaceVariable } from '../../../utils/index.js';
 import { StandardResponsePrompt } from './prompt.js';
 import { extractToolCalls, getCurrentDate } from '../utils.js';
 import Models from '../../../model.json' with { type: 'json' };
-import { SearchGraph } from './graph.js';
+import { EGraphEvent, SearchGraph } from './graph.js';
 import { SearcherFunction, SearchResultItem } from '../types.js';
 import { AIMessage, HumanMessage } from 'langchain';
+import { StructuredToolCallTracker } from '../tool-call-tracker.js';
 
 interface ISearchChatOptions {
   engine?: TSearchEngine
@@ -91,6 +92,7 @@ export class SearchChat {
     const { messages, systemPrompt, temperature, searchOptions } = options;
     const { language = 'auto', categories = [ESearXNGCategory.GENERAL] } = searchOptions || {};
     let contexts: ISearchResponseResult[] = [];
+    const toolCallTracker = new StructuredToolCallTracker();
 
     try {
       // Initialize SearchGraph with searcher adapter
@@ -136,6 +138,25 @@ export class SearchChat {
           const res = chunk as any;
           if (res.intentAnalysis) {
             shouldSearch = res.intentAnalysis?.shouldSearch;
+            const toolCalls = toolCallTracker.complete(
+              EGraphEvent.IntentAnalysis,
+              JSON.stringify({ shouldSearch }, null, 2)
+            );
+            if (toolCalls.length > 0) {
+              onMessage?.({ role: 'tool', toolCalls, content: '' });
+            }
+          }
+          if (res.rewriteQuery) {
+            const toolCalls = toolCallTracker.complete(
+              EGraphEvent.RewriteQuery,
+              JSON.stringify({
+                query: res.rewriteQuery.query ?? [],
+                rationale: res.rewriteQuery.rationale ?? '',
+              }, null, 2)
+            );
+            if (toolCalls.length > 0) {
+              onMessage?.({ role: 'tool', toolCalls, content: '' });
+            }
           }
           if (res.search) {
             const result: SearchResultItem[] = res.search.searchResults || [];
@@ -163,8 +184,12 @@ export class SearchChat {
               args: toolCall.args ?? {},
             };
           });
-          if (renamedToolCalls.length > 0) {
-            onMessage?.({ role: 'tool', toolCalls: renamedToolCalls, content: '' });
+          const pendingToolCalls = toolCallTracker.registerPending(
+            renamedToolCalls,
+            name?.[0] ?? 'tool'
+          );
+          if (pendingToolCalls.length > 0) {
+            onMessage?.({ role: 'tool', toolCalls: pendingToolCalls, content: '' });
           }
         }
       }
@@ -186,6 +211,10 @@ export class SearchChat {
 
     } catch (error) {
       logger.error('SearchGraph Error:', error);
+      const interruptedToolCalls = toolCallTracker.interruptPending();
+      if (interruptedToolCalls.length > 0) {
+        onMessage?.({ role: 'tool', toolCalls: interruptedToolCalls, content: '' });
+      }
       throw error;
     }
 

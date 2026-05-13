@@ -19,6 +19,7 @@ import Models from '../../../model.json' with { type: 'json' };
 import { extractStringFromMessageContent, extractToolCalls } from '../utils.js';
 import { BaseMessage } from 'langchain';
 import { getConfig } from '../../../utils/config.js';
+import { StructuredToolCallTracker } from '../tool-call-tracker.js';
 
 interface IDeepResearchOptions {
   engine?: TSearchEngine
@@ -91,116 +92,157 @@ export class DeepResearchAgent {
       language
     });
 
-    const deepResearch = new DeepResearch({
-      searcher,
-      options: {
-        apiKey: this.apiKey,
-        baseURL: this.baseURL,
-        type: this.providerType,
-        apiMode: this.apiMode,
-        enableCitationUrl: false
-      }
-    });
+    const toolCallTracker = new StructuredToolCallTracker();
+    try {
+      const deepResearch = new DeepResearch({
+        searcher,
+        options: {
+          apiKey: this.apiKey,
+          baseURL: this.baseURL,
+          type: this.providerType,
+          apiMode: this.apiMode,
+          enableCitationUrl: false
+        }
+      });
 
-    const agent = await deepResearch.compile();
+      const agent = await deepResearch.compile();
 
-    const langchainMessages = messages.map(msg => {
-      if (msg.role === 'user') {
+      const langchainMessages = messages.map(msg => {
+        if (msg.role === 'user') {
+          return new HumanMessage(msg.content);
+        } else if (msg.role === 'assistant') {
+          return new AIMessage(msg.content);
+        }
         return new HumanMessage(msg.content);
-      } else if (msg.role === 'assistant') {
-        return new AIMessage(msg.content);
-      }
-      return new HumanMessage(msg.content); // Fallback for system or other roles
-    });
+      });
 
-    const chunks = await agent.stream(
-      {
-        messages: langchainMessages,
-      },
-      {
-        streamMode: ['messages', 'updates'],
-        configurable: {
-          queryGeneratorModel: this.intentModel || this.model,
-          reflectionModel: this.intentModel || this.model,
-          answerModel: this.model,
-          numberOfInitialQueries,
-          maxResearchLoops,
+      const chunks = await agent.stream(
+        {
+          messages: langchainMessages,
         },
-      }
-    );
+        {
+          streamMode: ['messages', 'updates'],
+          configurable: {
+            queryGeneratorModel: this.intentModel || this.model,
+            reflectionModel: this.intentModel || this.model,
+            answerModel: this.model,
+            numberOfInitialQueries,
+            maxResearchLoops,
+          },
+        }
+      );
 
-    for await (const [streamMode, chunk] of chunks) {
-      if (streamMode === 'messages') {
-        const [message, metadata] = chunk;
-        const name: string[] = metadata.tags?.filter((item: string) => !item.startsWith('graph:step'));
-        const toolCalls = extractToolCalls(message as unknown as BaseMessage);
-        const renamedToolCalls = toolCalls.map(toolCall => {
-          return {
-            ...toolCall,
-            name: name?.[0] ?? toolCall.name,
-            status: toolCall.status ?? 'pending',
-            result: toolCall.result ?? '',
-            id: toolCall.id ?? `tool-${Math.random()}`,
-            args: toolCall.args ?? {},
-          };
-        });
-        if (renamedToolCalls.length > 0) {
-          onMessage?.({ role: 'tool', toolCalls: renamedToolCalls, content: '' });
-        }
-        if (name.includes(NodeEnum.FinalizeAnswer)) {
-          const content = extractStringFromMessageContent(message as unknown as BaseMessage);
-          onMessage?.({ content, role: 'assistant' });
-        }
-      } else {
-        const [step, result] = Object.entries(chunk)[0];
-        let researchIndex = 0;
-        switch (step) {
-          case NodeEnum.Research: {
-            const content = result.researchResult?.[researchIndex];
-            const loop = result.researchLoopCount;
-            const searchResult = result.sourcesGathered?.map(item => {
-              return `- ${item.title} (${item.url})`;
-            }).join('\n');
-            if (content) {
-              const toolCall: IToolCall = {
-                name: NodeEnum.Research,
-                id: `tool-${Math.random()}`,
-                args: { loop, queries: result.searchedQueries },
-                status: 'completed',
-                result: `${content}\n\n${searchResult}`,
-              };
-              onMessage?.({ toolCalls: [toolCall], content: '', role: 'tool' });
-              researchIndex++;
+      for await (const [streamMode, chunk] of chunks) {
+        if (streamMode === 'messages') {
+          const [message, metadata] = chunk;
+          const name: string[] = metadata.tags?.filter((item: string) => !item.startsWith('graph:step'));
+          const toolCalls = extractToolCalls(message as unknown as BaseMessage);
+          const renamedToolCalls = toolCalls.map(toolCall => {
+            return {
+              ...toolCall,
+              name: name?.[0] ?? toolCall.name,
+              status: toolCall.status ?? 'pending',
+              result: toolCall.result ?? '',
+              id: toolCall.id ?? `tool-${Math.random()}`,
+              args: toolCall.args ?? {},
+            };
+          });
+          const pendingToolCalls = toolCallTracker.registerPending(
+            renamedToolCalls,
+            name?.[0] ?? 'tool'
+          );
+          if (pendingToolCalls.length > 0) {
+            onMessage?.({ role: 'tool', toolCalls: pendingToolCalls, content: '' });
+          }
+          if (name.includes(NodeEnum.FinalizeAnswer)) {
+            const content = extractStringFromMessageContent(message as unknown as BaseMessage);
+            onMessage?.({ content, role: 'assistant' });
+          }
+        } else {
+          const [step, result] = Object.entries(chunk)[0];
+          let researchIndex = 0;
+          switch (step) {
+            case NodeEnum.GenerateQuery: {
+              const toolCalls = toolCallTracker.complete(
+                NodeEnum.GenerateQuery,
+                JSON.stringify({
+                  queries: result.generatedQueries ?? [],
+                  rationale: result.rationale ?? '',
+                }, null, 2)
+              );
+              if (toolCalls.length > 0) {
+                onMessage?.({ toolCalls, content: '', role: 'tool' });
+              }
+              break;
             }
-            break;
+            case NodeEnum.Research: {
+              const content = result.researchResult?.[researchIndex];
+              const loop = result.researchLoopCount;
+              const searchResult = result.sourcesGathered?.map(item => {
+                return `- ${item.title} (${item.url})`;
+              }).join('\n');
+              if (content) {
+                const toolCall: IToolCall = {
+                  name: NodeEnum.Research,
+                  id: `tool-${Math.random()}`,
+                  args: { loop, queries: result.searchedQueries },
+                  status: 'completed',
+                  result: `${content}\n\n${searchResult}`,
+                };
+                onMessage?.({ toolCalls: [toolCall], content: '', role: 'tool' });
+                researchIndex++;
+              }
+              break;
+            }
+            case NodeEnum.Reflection: {
+              const toolCalls = toolCallTracker.complete(
+                NodeEnum.Reflection,
+                JSON.stringify(result.reflectionState ?? {}, null, 2)
+              );
+              if (toolCalls.length > 0) {
+                onMessage?.({ toolCalls, content: '', role: 'tool' });
+              }
+              break;
+            }
+            case NodeEnum.FinalizeAnswer: {
+              const contexts = result.sourcesGathered?.map(item => {
+                const format = {
+                  id: item.id,
+                  name: item.title,
+                  content: item.content,
+                  snippet: item.content,
+                  url: item.url || '',
+                  score: item.score,
+                  raw: item
+                };
+                return format;
+              });
+              contexts?.sort((a, b) => {
+                const aId = Number(a.id);
+                const bId = Number(b.id);
+                return isNaN(bId - aId) ? 0 : aId - bId;
+              });
+              onMessage?.({ contexts, role: 'assistant', content: '' });
+              break;
+            }
+            default:
+              break;
           }
-          case NodeEnum.FinalizeAnswer: {
-            const contexts = result.sourcesGathered?.map(item => {
-              const format = {
-                id: item.id,
-                name: item.title,
-                content: item.content,
-                snippet: item.content,
-                url: item.url || '',
-                score: item.score,
-                raw: item
-              };
-              return format;
-            });
-            contexts?.sort((a, b) => {
-              const aId = Number(a.id);
-              const bId = Number(b.id);
-              return isNaN(bId - aId) ? 0 : aId - bId;
-            });
-            onMessage?.({ contexts, role: 'assistant', content: '' });
-            break;
-          }
-          default:
-            break;
         }
       }
-    }
 
-    onMessage?.(null, true);
+      const interruptedToolCalls = toolCallTracker.interruptPending();
+      if (interruptedToolCalls.length > 0) {
+        onMessage?.({ role: 'tool', toolCalls: interruptedToolCalls, content: '' });
+      }
+
+      onMessage?.(null, true);
+    } catch (error) {
+      const interruptedToolCalls = toolCallTracker.interruptPending();
+      if (interruptedToolCalls.length > 0) {
+        onMessage?.({ role: 'tool', toolCalls: interruptedToolCalls, content: '' });
+      }
+      throw error;
+    }
   }
 }
