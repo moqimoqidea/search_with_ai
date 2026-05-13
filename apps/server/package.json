@@ -11,7 +11,8 @@
     "start": "dotenvx run --env-file=.env -- node ./dist/app.js",
     "dev": "dotenvx run --env-file=.env.local --env-file=.env -- cross-env NODE_ENV=development nodemon --exec tsx ./src/app.ts",
     "check-types": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^1.0.24",

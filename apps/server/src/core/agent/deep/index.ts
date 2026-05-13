@@ -11,6 +11,7 @@ import {
   IProviderItemConfig,
   ProviderType,
   IToolCall,
+  OpenAIAPIMode,
 } from '../../../interface.js';
 import { ESearXNGCategory, SearchFunc, TSearchEngine } from '../../search/index.js';
 import { getSearchEngine } from '../../search/utils.js';
@@ -43,6 +44,7 @@ export class DeepResearchAgent {
   private apiKey?: string;
   private baseURL?: string;
   private providerType?: ProviderType;
+  private apiMode?: OpenAIAPIMode;
   private totalSearchResults: number = 0;
 
   constructor(params?: IDeepResearchOptions) {
@@ -58,6 +60,7 @@ export class DeepResearchAgent {
     this.apiKey = providerInfo.apiKey;
     this.baseURL = providerInfo.baseURL;
     this.providerType = providerInfo.type;
+    this.apiMode = providerInfo.apiMode;
     this.search = getSearchEngine(engine);
   }
 
@@ -94,6 +97,7 @@ export class DeepResearchAgent {
         apiKey: this.apiKey,
         baseURL: this.baseURL,
         type: this.providerType,
+        apiMode: this.apiMode,
         enableCitationUrl: false
       }
     });

@@ -22,7 +22,7 @@ import {
   reflectionInstructions,
   searcherInstructions,
 } from './prompts.js';
-import { SearcherFunction, SearchResultItem } from './types.js';
+import { OpenAIAPIMode, SearcherFunction, SearchResultItem } from './types.js';
 import { getCitations, getCurrentDate, getResearchTopic, replaceVariable } from './utils.js';
 
 export enum NodeEnum {
@@ -40,6 +40,7 @@ export enum EventStreamEnum {
 
 export interface DeepResearchOptions extends ClientOptions {
   type?: 'openai' | 'anthropic' | 'gemini' | 'vertexai';
+  apiMode?: OpenAIAPIMode;
   systemPrompt?: string;
   temperature?: number;
   /**
@@ -450,7 +451,7 @@ export class DeepResearch {
   }
 
   private createClient(model: string, temperature = 0.1) {
-    const { apiKey, type = 'openai', baseURL, ...rest } = this.options || {};
+    const { apiKey, type = 'openai', baseURL, apiMode, ...rest } = this.options || {};
     switch (type) {
       case 'anthropic': {
         const options: AnthropicInput = {
@@ -485,6 +486,7 @@ export class DeepResearch {
           model: model,
           openAIApiKey: apiKey,
           temperature,
+          useResponsesApi: apiMode === 'openai-responses',
           configuration: {
             apiKey,
             baseURL,

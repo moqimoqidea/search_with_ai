@@ -17,12 +17,14 @@ import { QueryWriterPrompt, ShouldSearchPrompt } from './prompt.js';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { SearcherFunction, SearchResultItem } from '../types.js';
 import { replaceVariable } from '../../../utils/index.js';
+import { OpenAIAPIMode } from '../../../interface.js';
 import * as z from 'zod';
 
 export interface GraphClientOptions extends ClientOptions {
   apiKey?: string;
   type?: 'openai' | 'anthropic' | 'gemini' | 'vertexai';
   temperature?: number;
+  apiMode?: OpenAIAPIMode;
 }
 export type GraphResult = typeof StateAnnotation.State;
 export enum EGraphEvent {
@@ -95,7 +97,7 @@ export class SearchGraph {
   }
 
   createClient(model?: string) {
-    const { apiKey, type, baseURL, temperature = 0, ...rest } = this.options;
+    const { apiKey, type, baseURL, temperature = 0, apiMode, ...rest } = this.options;
     const { model: defaultModel } = this;
     switch (type) {
       case 'anthropic': {
@@ -133,6 +135,7 @@ export class SearchGraph {
           model: model ?? defaultModel,
           temperature,
           openAIApiKey: apiKey,
+          useResponsesApi: apiMode === 'openai-responses',
           configuration: {
             apiKey,
             baseURL,

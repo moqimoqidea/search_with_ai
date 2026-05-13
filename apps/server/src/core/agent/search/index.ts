@@ -3,7 +3,8 @@ import {
   IStreamHandler,
   IChatResponse,
   IProviderItemConfig,
-  ProviderType
+  ProviderType,
+  OpenAIAPIMode,
 } from '../../../interface.js';
 import { ESearXNGCategory, ISearchResponseResult, ISearXNGOptions, SearchFunc, TSearchEngine } from '../../search/index.js';
 import { getProviderClient } from '../../llm/index.js';
@@ -47,6 +48,7 @@ export class SearchChat {
   private apiKey?: string;
   private baseURL?: string;
   private apiType?: ProviderType;
+  private apiMode?: OpenAIAPIMode;
 
   constructor(params?: ISearchChatOptions) {
     const { engine = 'SEARXNG', model, intentModel, provider } = params || {};
@@ -54,14 +56,15 @@ export class SearchChat {
     if (!provider) throw new Error('[RAG] provider is required');
     const providerInfo = models.find(item => item.provider === provider);
     if (!providerInfo) throw new Error(`[RAG] provider ${provider} not found`);
-    const { apiKey, baseURL } = providerInfo;
-    const client = getProviderClient(provider, apiKey, baseURL);
+    const { apiKey, baseURL, apiMode } = providerInfo;
+    const client = getProviderClient(provider, apiKey, baseURL, { apiMode });
     this.createChat = client.chat.bind(client);
     this.model = model;
     this.intentModel = intentModel;
     this.apiKey = apiKey;
     this.baseURL = baseURL;
     this.apiType = providerInfo.type;
+    this.apiMode = apiMode;
     // this.engine = engine;
     this.search = getSearchEngine(engine);
   }
@@ -102,7 +105,8 @@ export class SearchChat {
       }, {
         type: this.apiType,
         apiKey: apiKey || '',
-        baseURL
+        baseURL,
+        apiMode: this.apiMode
       });
       // Use SearchGraph for intelligent search workflow
       const graph = searchGraph.compile();

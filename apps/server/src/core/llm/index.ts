@@ -3,10 +3,16 @@ import { IProviderItemConfig } from '../../interface.js';
 import { BaseOpenAIChat } from './openai.js';
 import { GeminiChat } from './gemini.js';
 import { BaseAnthropicChat } from './anthropic.js';
+import { IProviderClientOptions } from './type.js';
 
 const models = Models as IProviderItemConfig[];
 
-export function getProviderClient(provider: string, key?: string, baseUrl?: string) {
+export function getProviderClient(
+  provider: string,
+  key?: string,
+  baseUrl?: string,
+  options?: IProviderClientOptions
+) {
   const target = models.find(item => {
     return item.provider === provider;
   });
@@ -27,6 +33,9 @@ export function getProviderClient(provider: string, key?: string, baseUrl?: stri
       return new GeminiChat(key, baseUrl, true);
     case 'openai':
     default:
-      return new BaseOpenAIChat(provider, key, baseUrl);
+      return new BaseOpenAIChat(provider, key, baseUrl, {
+        apiMode: options?.apiMode ?? target.apiMode,
+        client: options?.client,
+      });
   }
 }

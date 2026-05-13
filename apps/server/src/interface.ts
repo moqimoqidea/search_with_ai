@@ -21,6 +21,7 @@ export interface IModelItemConfig {
 }
 
 export type ProviderType = 'openai' | 'anthropic' | 'gemini' | 'vertexai';
+export type OpenAIAPIMode = 'openai-completions' | 'openai-responses';
 
 export interface IProviderItemConfig {
   provider: string;
@@ -28,6 +29,7 @@ export interface IProviderItemConfig {
   models: IModelItemConfig[];
   baseURL?: string;
   apiKey?: string;
+  apiMode?: OpenAIAPIMode;
 }
 
 /**

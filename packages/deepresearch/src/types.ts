@@ -17,3 +17,5 @@ export interface SearchResultItem {
 export type SearcherFunction = (
   input: typeof ResearchState.State
 ) => Promise<SearchResultItem[]>;
+
+export type OpenAIAPIMode = 'openai-completions' | 'openai-responses';
